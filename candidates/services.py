@@ -45,10 +45,12 @@ class ResumeParser:
                 'name': None,
                 'email': None,
                 'phone': None,
-                'employer': None
+                'employer': None,
+                'designation': None,
+                'skills': None
             }
 
-        prompt = f"""Extract the following information from this resume and return ONLY a valid JSON object with these exact keys: name, email, phone, employer (current or most recent employer).
+        prompt = f"""Extract the following information from this resume and return ONLY a valid JSON object with these exact keys: name, email, phone, employer (current or most recent employer), designation (current or most recent job title), skills (comma-separated list of technical and professional skills).
 
 If a field is not found, use null for that field.
 
@@ -60,7 +62,7 @@ Return only the JSON object, no other text."""
         try:
             # print("Calling Anthropic API...")
             message = self.anthropic.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5-20250929",
                 max_tokens=1024,
                 messages=[
                     {"role": "user", "content": prompt}
@@ -89,7 +91,9 @@ Return only the JSON object, no other text."""
                 'name': None,
                 'email': None,
                 'phone': None,
-                'employer': None
+                'employer': None,
+                'designation': None,
+                'skills': None
             }
 
     def parse_resume(self, resume_path):
@@ -115,11 +119,59 @@ Return only the JSON object, no other text."""
         return candidate_data
 
 
-class AIDocumentRequest:
-    def __init__(self, document_path):
-        self.document_path = document_path
+class AIDocumentRequestGenerator:
+    def __init__(self):
+        anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
+        self.anthropic = Anthropic(api_key=anthropic_api_key) if anthropic_api_key else None
 
-    def request(self):
-        with open(self.document_path, 'r') as file:
-            document_text = file.read()
-        return document_text
+    def generate_request(self, candidate):
+        """Generate a personalized document request message for a candidate."""
+        if not self.anthropic:
+            print('Anthropic API key is not set')
+            return self._fallback_request(candidate)
+        
+        try:
+            message = self.anthropic.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=500,
+                messages=[{
+                    "role": "user",
+                    "content": f"""As an AI HR assistant, write a professional and friendly message requesting PAN and Aadhaar documents from a candidate.
+
+Candidate details:
+- Name: {candidate.name or 'Candidate'}
+- Email: {candidate.email or 'Not provided'}
+- Designation: {candidate.designation or 'Not provided'}
+
+Write a personalized message that:
+1. Addresses the candidate by name
+2. Mentions their application/position if available
+3. Politely requests PAN and Aadhaar documents
+4. Explains it's for verification purposes
+5. Provides clear next steps
+
+Keep it warm, professional, and concise (3-4 sentences)."""
+                }]
+            )
+            
+            return message.content[0].text
+            
+        except Exception as e:
+            print(f"AI request generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            return self._fallback_request(candidate)
+    
+    def _fallback_request(self, candidate):
+        """Fallback message when AI is not available."""
+        name = candidate.name or 'Candidate'
+        designation = candidate.designation or 'your desired position'
+        
+        return f"""Dear {name},
+
+Thank you for your application for the {designation} position. To proceed with your application, we kindly request you to submit your PAN Card and Aadhaar Card for identity verification.
+
+Please upload the documents at your earliest convenience through our candidate portal.
+
+Best regards,
+HR Team"""

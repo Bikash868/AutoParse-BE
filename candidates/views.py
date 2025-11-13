@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .models import Candidate
 from .serializers import CandidateSerializer
-from .services import ResumeParser
+from .services import ResumeParser, AIDocumentRequestGenerator
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CandidateViewSet(viewsets.ModelViewSet):
@@ -43,6 +43,8 @@ class CandidateViewSet(viewsets.ModelViewSet):
             email=resume_text.get('email'),
             phone=resume_text.get('phone'),
             employer=resume_text.get('employer'),
+            designation=resume_text.get('designation'),
+            skills=resume_text.get('skills'),
             resume=full_file_path,
         )
 
@@ -58,3 +60,26 @@ class CandidateViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(candidate)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='request-documents')
+    def request_documents(self, request, pk=None):
+        """Generating and logging a personalized request for PAN/Aadhaar documents."""
+        try:
+            candidate = self.get_object()
+            
+            ai_generator = AIDocumentRequestGenerator()
+            message = ai_generator.generate_request(candidate)
+            
+            candidate.document_request_message = message
+            candidate.save()
+            
+            return Response({
+                'message': message,
+                'candidate_id': candidate.id,
+                'candidate_name': candidate.name
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Failed to generate document request: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
