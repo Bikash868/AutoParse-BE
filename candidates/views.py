@@ -83,3 +83,37 @@ class CandidateViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': f'Failed to generate document request: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='submit-documents')
+    def submit_documents(self, request, pk=None):
+            """Accept uploaded PAN/Aadhaar images."""
+            try:
+                candidate = self.get_object()
+                
+                pan_card = request.FILES.get('pan_card')
+                aadhar_card = request.FILES.get('aadhar_card')
+                
+                if not pan_card and not aadhar_card:
+                    return Response({
+                        'error': 'At least one document (PAN or Aadhaar) is required'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                if pan_card:
+                    candidate.pan_card = pan_card
+                
+                if aadhar_card:
+                    candidate.aadhar_card = aadhar_card
+                
+                candidate.save()
+                
+                serializer = self.get_serializer(candidate)
+                
+                return Response({
+                    'message': 'Documents uploaded successfully',
+                    'candidate': serializer.data
+                }, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                return Response({
+                    'error': f'Failed to upload documents: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
