@@ -18,14 +18,28 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.http import JsonResponse
+import os
 
 from candidates.views import CandidateViewSet
 from rest_framework.routers import DefaultRouter
+
+def health_check(request):
+    """Simple health check endpoint"""
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'AutoParse API is running',
+        'debug': settings.DEBUG,
+        'anthropic_key_set': bool(os.getenv('ANTHROPIC_API_KEY')),
+        'media_root': settings.MEDIA_ROOT,
+    })
 
 router = DefaultRouter()
 router.register(r'candidates', CandidateViewSet)
 
 urlpatterns = [
+    path('', health_check, name='health_check'),
+    path('health/', health_check, name='health'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
