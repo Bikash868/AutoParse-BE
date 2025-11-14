@@ -33,29 +33,25 @@ class CandidateViewSet(viewsets.ModelViewSet):
             temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             
-            # Save file temporarily with a unique name to avoid conflicts
+            # saving file temporarily with a unique name to avoid conflicts
             import time
             temp_filename = f"{int(time.time())}_{resume_file.name}"
             temp_path = os.path.join(temp_dir, temp_filename)
             
-            # Write the uploaded file to temp location
             with open(temp_path, 'wb+') as destination:
                 for chunk in resume_file.chunks():
                     destination.write(chunk)
             
-            # Parse the resume
             resume_parser = ResumeParser()
             resume_text = resume_parser.parse_resume(temp_path)
 
             if not resume_text:
-                # Clean up temp file
                 try:
                     os.remove(temp_path)
                 except OSError:
                     pass
                 return Response({'error': 'Failed to parse resume'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create a new candidate
             candidate = Candidate.objects.create(
                 name=resume_text.get('name'),
                 email=resume_text.get('email'),
@@ -65,10 +61,8 @@ class CandidateViewSet(viewsets.ModelViewSet):
                 skills=resume_text.get('skills'),
             )
 
-            # Save the resume file to the candidate
             candidate.resume.save(resume_file.name, resume_file, save=True)
 
-            # Remove the temporary file
             try:
                 os.remove(temp_path)
             except OSError:
@@ -78,7 +72,6 @@ class CandidateViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            # Log the error and return a proper error response
             import traceback
             print(f"Error in upload: {str(e)}")
             traceback.print_exc()

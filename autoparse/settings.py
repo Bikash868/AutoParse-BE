@@ -77,13 +77,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'autoparse.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-# Using SQLite for simplicity
-# NOTE: On Render, SQLite data will be lost on each deployment (ephemeral filesystem)
-# For persistent data, consider upgrading to PostgreSQL
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
