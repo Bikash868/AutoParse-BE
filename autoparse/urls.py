@@ -28,7 +28,6 @@ router = DefaultRouter()
 router.register(r'candidates', CandidateViewSet)
 
 urlpatterns = [
-    path('', health_check, name='health_check'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
