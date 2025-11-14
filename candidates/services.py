@@ -47,17 +47,44 @@ class ResumeParser:
                 'phone': None,
                 'employer': None,
                 'designation': None,
-                'skills': None
+                'skills': None,
+                'confidence_scores': None
             }
 
-        prompt = f"""Extract the following information from this resume and return ONLY a valid JSON object with these exact keys: name, email, phone, employer (current or most recent employer), designation (current or most recent job title), skills (comma-separated list of technical and professional skills).
+        prompt = f"""Extract the following information from this resume and return ONLY a valid JSON object with these exact keys:
+- name: full name of the candidate
+- email: email address
+- phone: phone number
+- employer: current or most recent employer company name
+- designation: current or most recent job title
+- skills: comma-separated list of technical and professional skills
+- confidence_scores: an object with confidence scores (0-100) for each extracted field
 
-If a field is not found, use null for that field.
+The confidence_scores object should have these keys: name, email, phone, employer, designation, skills
+Each confidence score should be a number from 0-100 indicating how confident you are about the extracted information.
+
+If a field is not found, use null for that field and 0 for its confidence score.
 
 Resume text:
 {resume_text}
 
-Return only the JSON object, no other text."""
+Return only the JSON object, no other text. Example format:
+{{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+1-234-567-8900",
+  "employer": "Tech Corp",
+  "designation": "Software Engineer",
+  "skills": "Python, Java, React",
+  "confidence_scores": {{
+    "name": 95,
+    "email": 100,
+    "phone": 90,
+    "employer": 85,
+    "designation": 80,
+    "skills": 75
+  }}
+}}"""
 
         try:
             # print("Calling Anthropic API...")
@@ -93,7 +120,8 @@ Return only the JSON object, no other text."""
                 'phone': None,
                 'employer': None,
                 'designation': None,
-                'skills': None
+                'skills': None,
+                'confidence_scores': None
             }
 
     def parse_resume(self, resume_path):

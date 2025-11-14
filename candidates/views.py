@@ -59,6 +59,7 @@ class CandidateViewSet(viewsets.ModelViewSet):
                 employer=resume_text.get('employer'),
                 designation=resume_text.get('designation'),
                 skills=resume_text.get('skills'),
+                confidence_scores=resume_text.get('confidence_scores'),
             )
 
             candidate.resume.save(resume_file.name, resume_file, save=True)

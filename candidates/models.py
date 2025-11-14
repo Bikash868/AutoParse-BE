@@ -8,6 +8,7 @@ class Candidate(models.Model):
     employer = models.CharField(max_length=255, blank=True, null=True)
     designation = models.CharField(max_length=255, blank=True, null=True)
     skills = models.TextField(blank=True, null=True)
+    confidence_scores = models.JSONField(blank=True, null=True)
     resume = models.FileField(upload_to='resumes/', blank=True, null=True)
     aadhar_card = models.FileField(upload_to='aadhar_cards/', blank=True, null=True)
     pan_card = models.FileField(upload_to='pan_cards/', blank=True, null=True)

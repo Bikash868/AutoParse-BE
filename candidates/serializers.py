@@ -12,6 +12,7 @@ class CandidateSerializer(serializers.ModelSerializer):
             'employer',
             'designation',
             'skills',
+            'confidence_scores',
             'resume',
             'aadhar_card',
             'pan_card',
