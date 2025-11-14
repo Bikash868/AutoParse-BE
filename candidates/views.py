@@ -27,39 +27,57 @@ class CandidateViewSet(viewsets.ModelViewSet):
         if not resume_file:
             return Response({'error': 'Resume file is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # saving the file
-        file_path = default_storage.save(f'temp/{resume_file.name}', resume_file)
-        full_file_path = os.path.join(default_storage.location, file_path)
-
-        resume_parser = ResumeParser()
-        resume_text = resume_parser.parse_resume(full_file_path)
-
-        if not resume_text:
-            return Response({'error': 'Failed to parse resume'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # creating a new candidate
-        candidate = Candidate.objects.create(
-            name=resume_text.get('name'),
-            email=resume_text.get('email'),
-            phone=resume_text.get('phone'),
-            employer=resume_text.get('employer'),
-            designation=resume_text.get('designation'),
-            skills=resume_text.get('skills'),
-            resume=full_file_path,
-        )
-
-        candidate.resume = resume_file
-        candidate.save()
-
-        # removing the temporary file
         try:
-            os.remove(full_file_path)
-        except OSError:
-            pass
+            # Create temp directory if it doesn't exist
+            from django.conf import settings
+            temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # saving file temporarily with a unique name to avoid conflicts
+            import time
+            temp_filename = f"{int(time.time())}_{resume_file.name}"
+            temp_path = os.path.join(temp_dir, temp_filename)
+            
+            with open(temp_path, 'wb+') as destination:
+                for chunk in resume_file.chunks():
+                    destination.write(chunk)
+            
+            resume_parser = ResumeParser()
+            resume_text = resume_parser.parse_resume(temp_path)
 
-        serializer = self.get_serializer(candidate)
+            if not resume_text:
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+                return Response({'error': 'Failed to parse resume'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            candidate = Candidate.objects.create(
+                name=resume_text.get('name'),
+                email=resume_text.get('email'),
+                phone=resume_text.get('phone'),
+                employer=resume_text.get('employer'),
+                designation=resume_text.get('designation'),
+                skills=resume_text.get('skills'),
+            )
+
+            candidate.resume.save(resume_file.name, resume_file, save=True)
+
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+            serializer = self.get_serializer(candidate)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            import traceback
+            print(f"Error in upload: {str(e)}")
+            traceback.print_exc()
+            return Response({
+                'error': f'Failed to process resume: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='request-documents')
     def request_documents(self, request, pk=None):

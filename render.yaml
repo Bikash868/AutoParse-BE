@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: autoparse-be
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn autoparse.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    autoDeploy: true
+
